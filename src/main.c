@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     tObjeto3d **objetos = (tObjeto3d **)malloc(2 * sizeof(tObjeto3d *));
 
     objetos[0] = carregaObjeto("./src/objs/plano.dcg");
-    objetos[1] = carregaObjeto("./src/objs/icosaedro.dcg");
+    objetos[1] = carregaObjeto("./src/objs/octaedro.dcg");
 
     tCamera *camera = criaCamera();
     tProj *proj = criaProjecao(1, -1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
