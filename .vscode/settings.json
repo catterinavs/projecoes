@@ -1,5 +1,14 @@
 {
     "files.associations": {
-        "stdio.h": "c"
-    }
+        "objeto.h": "c",
+        "tela.h": "c",
+        "algebra.h": "c",
+        "stdio.h": "c",
+        "sdl.h": "c",
+        "math.h": "c",
+        "stdlib.h": "c",
+        "controls.h": "c",
+        "camera.h": "c"
+    },
+    "C_Cpp.default.compilerPath": "C:/msys64/ucrt64/bin/g++.exe"
 }

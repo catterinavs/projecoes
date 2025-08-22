@@ -1,7 +1,7 @@
-build/main.o: src/main.c include/SDL2/SDL.h include/SDL2/SDL_main.h \
- include/SDL2/SDL_stdinc.h include/SDL2/SDL_config.h \
- include/SDL2/SDL_platform.h include/SDL2/begin_code.h \
- include/SDL2/close_code.h include/SDL2/SDL_config_windows.h \
+bin/core/objeto.o: src/core/objeto.c include/SDL2/SDL.h \
+ include/SDL2/SDL_main.h include/SDL2/SDL_stdinc.h \
+ include/SDL2/SDL_config.h include/SDL2/SDL_platform.h \
+ include/SDL2/begin_code.h include/SDL2/close_code.h \
  include/SDL2/SDL_assert.h include/SDL2/SDL_atomic.h \
  include/SDL2/SDL_audio.h include/SDL2/SDL_error.h \
  include/SDL2/SDL_endian.h include/SDL2/SDL_mutex.h \
@@ -23,5 +23,4 @@ build/main.o: src/main.c include/SDL2/SDL.h include/SDL2/SDL_main.h \
  include/SDL2/SDL_render.h include/SDL2/SDL_shape.h \
  include/SDL2/SDL_system.h include/SDL2/SDL_timer.h \
  include/SDL2/SDL_version.h include/SDL2/SDL_locale.h \
- include/SDL2/SDL_misc.h src/core/objeto.h src/core/tela.h \
- src/core/algebra.h src/core/camera.h
+ include/SDL2/SDL_misc.h src/core/objeto.h src/core/algebra.h

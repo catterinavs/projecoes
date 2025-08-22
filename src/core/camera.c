@@ -1,65 +1,140 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include "camera.h"
 #include "algebra.h"
+#include "camera.h"
 
-// Aloca a estrutura de memória para representar a câmera
-tCamera3d *criaCamera() {
-    tCamera3d *cam = (tCamera3d *)malloc(sizeof(tCamera3d));
-    cam->posicao = (float *)malloc(3 * sizeof(float));
-    cam->foco = (float *)malloc(3 * sizeof(float));
-    cam->cima = (float *)malloc(3 * sizeof(float));
-    cam->viewMatrix = (float **)malloc(4 * sizeof(float *));
+tCamera *criaCamera()
+{
+    tCamera *camera = (tCamera *)malloc(sizeof(tCamera));
+
+    camera->posicao.x = 0.0;
+    camera->posicao.y = 0.0;
+    camera->posicao.z = 1.0;
+
+    camera->foco.x = 0.0;
+    camera->foco.y = 0.0;
+    camera->foco.z = 0.0;
+
+    camera->cima.x = 0.0;
+    camera->cima.y = 1.0;
+    camera->cima.z = 0.0;
+
+    camera->viewMatrix = criaIdentidade4d();
+
+    defineCamera(camera);
+
+    return camera;
+}
+
+void defineCamera(tCamera *camera)
+{
+    Vetor forward = normaliza(subtraiVetor(camera->foco, camera->posicao));
+    Vetor right = normaliza(produtoVetorial(forward, camera->cima));
+    Vetor up = produtoVetorial(right, forward); // Já está normalizado
+
+    camera->viewMatrix[0][0] = right.x;
+    camera->viewMatrix[0][1] = right.y;
+    camera->viewMatrix[0][2] = right.z;
+    camera->viewMatrix[0][3] = -produtoEscalar(right, camera->posicao);
+
+    camera->viewMatrix[1][0] = up.x;
+    camera->viewMatrix[1][1] = up.y;
+    camera->viewMatrix[1][2] = up.z;
+    camera->viewMatrix[1][3] = -produtoEscalar(up, camera->posicao);
+
+    camera->viewMatrix[2][0] = -forward.x;
+    camera->viewMatrix[2][1] = -forward.y;
+    camera->viewMatrix[2][2] = -forward.z;
+    camera->viewMatrix[2][3] = produtoEscalar(forward, camera->posicao);
+
+    camera->viewMatrix[3][0] = 0;
+    camera->viewMatrix[3][1] = 0;
+    camera->viewMatrix[3][2] = 0;
+    camera->viewMatrix[3][3] = 1;
+}
+
+void rotacionaCamera(tCamera *camera, float angle, Vetor eixo)
+{
+    // Get the direction vector (focus - position)
+    Vetor direcao = subtraiVetor(camera->foco, camera->posicao);
+    
+    // Rotate the direction vector around the specified axis (e.g., camera->cima)
+    direcao = rotacionaVetor(direcao, eixo, angle);
+    
+    // Update the camera's focus point
+    camera->foco = somaVetor(camera->posicao, direcao);
+}
+
+tProj *criaProjecao(int tipo, float left, float right, float top, float bottom, float near, float far)
+{
+    tProj *proj = (tProj *)malloc(sizeof(tProj));
+
+    proj->tipo = tipo;
+    proj->left = left;
+    proj->right = right;
+    proj->top = top;
+    proj->bottom = bottom;
+    proj->near = near;
+    proj->far = far;
+
+    proj->projectionMatrix = (float **)malloc(4 * sizeof(float *));
     for (int i = 0; i < 4; i++)
-        cam->viewMatrix[i] = (float *)malloc(4 * sizeof(float));
-    criaIdentidade4d(cam->viewMatrix);
-    return cam;
-}
-
-// Recebe os parâmetros específicos da câmera e calcula viewMatrix
-void defineCamera(tCamera3d *camera, float posX, float posY, float posZ, float focX, float focY, float focZ, float cimX, float cimY, float cimZ) {
-    // Guarda os vetores
-    camera->posicao[0] = posX; camera->posicao[1] = posY; camera->posicao[2] = posZ;
-    camera->foco[0] = focX; camera->foco[1] = focY; camera->foco[2] = focZ;
-    camera->cima[0] = cimX; camera->cima[1] = cimY; camera->cima[2] = cimZ;
-
-    // Calcula os vetores da base da câmera (view matrix estilo LookAt)
-    float f[3], s[3], u[3];
-    // f = foco - posicao
-    for (int i = 0; i < 3; i++) f[i] = camera->foco[i] - camera->posicao[i];
-    // Normaliza f
-    float flen = sqrtf(f[0]*f[0] + f[1]*f[1] + f[2]*f[2]);
-    for (int i = 0; i < 3; i++) f[i] /= flen;
-    // s = f x cima
-    s[0] = f[1]*camera->cima[2] - f[2]*camera->cima[1];
-    s[1] = f[2]*camera->cima[0] - f[0]*camera->cima[2];
-    s[2] = f[0]*camera->cima[1] - f[1]*camera->cima[0];
-    // Normaliza s
-    float slen = sqrtf(s[0]*s[0] + s[1]*s[1] + s[2]*s[2]);
-    for (int i = 0; i < 3; i++) s[i] /= slen;
-    // u = s x f
-    u[0] = s[1]*f[2] - s[2]*f[1];
-    u[1] = s[2]*f[0] - s[0]*f[2];
-    u[2] = s[0]*f[1] - s[1]*f[0];
-
-    // Monta a viewMatrix (OpenGL style)
-    float **m = camera->viewMatrix;
-    m[0][0] = s[0]; m[0][1] = s[1]; m[0][2] = s[2]; m[0][3] = - (s[0]*posX + s[1]*posY + s[2]*posZ);
-    m[1][0] = u[0]; m[1][1] = u[1]; m[1][2] = u[2]; m[1][3] = - (u[0]*posX + u[1]*posY + u[2]*posZ);
-    m[2][0] = -f[0]; m[2][1] = -f[1]; m[2][2] = -f[2]; m[2][3] = (f[0]*posX + f[1]*posY + f[2]*posZ);
-    m[3][0] = 0; m[3][1] = 0; m[3][2] = 0; m[3][3] = 1;
-}
-
-// Desaloca a câmera
-void desalocaCamera(tCamera3d *camera) {
-    if (!camera) return;
-    if (camera->posicao) free(camera->posicao);
-    if (camera->foco) free(camera->foco);
-    if (camera->cima) free(camera->cima);
-    if (camera->viewMatrix) {
-        for (int i = 0; i < 4; i++) free(camera->viewMatrix[i]);
-        free(camera->viewMatrix);
+    {
+        proj->projectionMatrix[i] = (float *)malloc(4 * sizeof(float));
     }
+
+    defineProjecao(proj);
+
+    return proj;
+}
+
+void defineProjecao(tProj *proj)
+{
+    if (proj == NULL || proj->projectionMatrix == NULL)
+        return;
+
+    float left = proj->left;
+    float right = proj->right;
+    float top = proj->top;
+    float bottom = proj->bottom;
+    float near = proj->near;
+    float far = proj->far;
+
+    proj->projectionMatrix[0][0] = (2.0f * near) / (right - left);
+    proj->projectionMatrix[0][1] = 0.0f;
+    proj->projectionMatrix[0][2] = (right + left) / (right - left);
+    proj->projectionMatrix[0][3] = 0.0f;
+
+    proj->projectionMatrix[1][0] = 0.0f;
+    proj->projectionMatrix[1][1] = (2.0f * near) / (top - bottom);
+    proj->projectionMatrix[1][2] = (top + bottom) / (top - bottom);
+    proj->projectionMatrix[1][3] = 0.0f;
+
+    proj->projectionMatrix[2][0] = 0.0f;
+    proj->projectionMatrix[2][1] = 0.0f;
+    proj->projectionMatrix[2][2] = -(far + near) / (far - near);
+    proj->projectionMatrix[2][3] = -(2.0f * far * near) / (far - near);
+
+    proj->projectionMatrix[3][0] = 0.0f;
+    proj->projectionMatrix[3][1] = 0.0f;
+    proj->projectionMatrix[3][2] = -1.0f;
+    proj->projectionMatrix[3][3] = 0.0f;
+}
+
+void desalocaCamera(tCamera *camera)
+{
+    if (camera == NULL)
+        return;
+
+    limpaMatriz(camera->viewMatrix);
     free(camera);
+}
+
+void desalocaProjecao(tProj *proj)
+{
+    if (proj == NULL)
+        return;
+
+    limpaMatriz(proj->projectionMatrix);
+
+    free(proj);
 }

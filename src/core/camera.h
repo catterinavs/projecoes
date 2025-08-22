@@ -1,23 +1,41 @@
-#include <stdio.h>
-#include <SDL2/SDL.h>
+#include <algebra.h>
 
-#ifndef tCam
-#define tCam
+#ifndef _tCam
+#define _tCam
+typedef struct tCam
+{
+    Vetor posicao;
+    Vetor foco;
+    Vetor cima;
+    float **viewMatrix;
+} tCamera;
+#endif
 
-typedef struct _tCam{
-	float *posicao;
-	float *foco;
-	float *cima;
-	float **viewMatrix;
-} tCamera3d;
-#endif // tCam
+#ifndef _tProj
+#define _tProj
+typedef struct _tProj
+{
+    int tipo;
+    float left;
+    float right;
+    float top;
+    float bottom;
+    float near;
+    float far;
+    float **projectionMatrix;
+} tProj;
+#endif
 
+tCamera *criaCamera();
 
-//Aloca a estrutura de memória para representar a câmera
-tCamera3d *criaCamera();
+void defineCamera(tCamera *camera);
 
-//Recebe os parâmetros específicos da câmera e calcula viewMatrix
-void defineCamera(tCamera3d *camera, float posX, float posY, float posZ, float focX, float focY, float focZ, float cimX, float cimY, float cimZ);
+void rotacionaCamera(tCamera *camera, float angle, Vetor eixo);
 
-//Desaloca a câmera
-void desalocaCamera(tCamera3d *objeto);
+tProj* criaProjecao(int tipo, float left, float right, float top, float bottom, float near, float far);
+
+void defineProjecao(tProj *proj);
+
+void desalocaCamera(tCamera *camera);
+
+void desalocaProjecao(tProj *proj);
