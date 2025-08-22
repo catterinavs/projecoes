@@ -61,16 +61,9 @@ void renderiza(SDL_Renderer *renderer, tObjeto3d **objetos, float **viewMatrix, 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    // Desenha o plano em ciano
-    SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
-    desenhaObjetoTela(renderer, objetos[0], viewMatrix, projectionMatrix);
-    
-    // Desenha os objetos em branco
+    // Desenha o objeto em branco
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    for (int i = 1; i < 2; i++)
-    {
-        desenhaObjetoTela(renderer, objetos[i], viewMatrix, projectionMatrix);
-    }
+    desenhaObjetoTela(renderer, objetos[0], viewMatrix, projectionMatrix);
 
     SDL_Delay(16);
     SDL_RenderPresent(renderer);
