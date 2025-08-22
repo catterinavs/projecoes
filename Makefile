@@ -1,51 +1,62 @@
-# Makefile para SDL2 (Windows/MinGW, SDL incluída no projeto)
+# Makefile multiplataforma para projeto SDL2
 
-CC       := gcc
-CFLAGS   := -Wall -g \
-            -Iinclude \
-            -Iinclude/SDL2 \
-            -Isrc \
-            -Isrc/core 
-
-# Onde estão suas .a e .dll
-LIB_DIR      := src/lib
-SDL2MAIN_A   := $(LIB_DIR)/libSDL2main.a
-SDL2_IMPORT  := $(LIB_DIR)/libSDL2.dll.a
-SDL2_DLL     := $(LIB_DIR)/SDL2.dll
-
-SRC_DIR  := src
-BUILD    := build
-BIN_DIR  := bin
-
+# Variáveis comuns
+CC := gcc
+CFLAGS := -Wall -g -Iinclude -Iinclude/SDL2 -Isrc -Isrc/core
+LIB_DIR := src/lib
+SDL2MAIN_A := $(LIB_DIR)/libSDL2main.a
+SDL2_IMPORT := $(LIB_DIR)/libSDL2.dll.a
+SDL2_DLL := $(LIB_DIR)/SDL2.dll
+OBJDIR := bin
+BINDIR := build
 SRCS := \
-    $(SRC_DIR)/main.c \
-    $(SRC_DIR)/core/algebra.c \
-    $(SRC_DIR)/core/objeto.c \
-    $(SRC_DIR)/core/camera.c \
-    $(SRC_DIR)/core/tela.c
+	src/main.c \
+	src/core/algebra.c \
+	src/core/objeto.c \
+	src/core/camera.c \
+	src/core/tela.c \
+	src/core/controls.c
+OBJS := $(SRCS:src/%.c=$(OBJDIR)/%.o)
 
-OBJS := $(SRCS:$(SRC_DIR)/%.c=$(BUILD)/%.o)
+# Linux/bash
+linux: $(BINDIR)/programa.exe
 
-all: $(BIN_DIR)/programa.exe
+$(OBJDIR):
+	@mkdir -p $(OBJDIR)/core
 
-# 1) Compila cada .c → .o e gera .d
-$(BUILD)/%.o: $(SRC_DIR)/%.c
+$(BINDIR):
+	@mkdir -p $(BINDIR)
+
+$(OBJDIR)/%.o: src/%.c | $(OBJDIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
-# 2) Linka TODOS objetos, depois as .a, e copia a DLL
-$(BIN_DIR)/programa.exe: $(OBJS) $(SDL2MAIN_A) $(SDL2_IMPORT)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $^ -o $@ \
-	    -lmingw32 \
-	    $(SDL2MAIN_A) \
-	    $(SDL2_IMPORT)
-	@cp $(SDL2_DLL) $(BIN_DIR)/
+$(BINDIR)/programa.exe: $(OBJS) $(SDL2MAIN_A) $(SDL2_IMPORT) | $(BINDIR)
+	$(CC) $^ -o $@ -lmingw32 $(SDL2MAIN_A) $(SDL2_IMPORT)
+	cp $(SDL2_DLL) $(BINDIR)/
 
-# inclui dependências
--include $(OBJS:.o=.d)
+linux-clean:
+	rm -rf $(OBJDIR) $(BINDIR)
 
-clean:
-	rm -rf $(BUILD) $(BIN_DIR)
+# Windows/cmd
+windows: $(BINDIR)/programa.exe-win
 
-.PHONY: all clean
+$(OBJDIR)-win:
+	@if not exist $(OBJDIR) mkdir $(OBJDIR) & if not exist $(OBJDIR)\core mkdir $(OBJDIR)\core
+
+$(BINDIR)-win:
+	@if not exist $(BINDIR) mkdir $(BINDIR)
+
+$(OBJDIR)/%.o: src/%.c | $(OBJDIR)-win
+	@if not exist $(dir $@) mkdir $(dir $@)
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
+
+$(BINDIR)/programa.exe-win: $(OBJS) $(SDL2MAIN_A) $(SDL2_IMPORT) | $(BINDIR)-win
+	$(CC) $^ -o $@ -lmingw32 $(SDL2MAIN_A) $(SDL2_IMPORT)
+	copy $(SDL2_DLL) $(BINDIR)\
+
+windows-clean:
+	@if exist $(OBJDIR) rmdir /s /q $(OBJDIR)
+	@if exist $(BINDIR) rmdir /s /q $(BINDIR)
+
+.PHONY: linux linux-clean windows windows-clean

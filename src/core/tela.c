@@ -1,33 +1,76 @@
 #include <stdio.h>
+#include <math.h>
 #include <SDL2/SDL.h>
 #include "tela.h"
+#include "objeto.h"
+#include "algebra.h"
 
-//Aloca a tela utilizando o título passado como parâmetro e as largura e altura definidas no tela.h
-SDL_Window *criaTela(char *titulo){
-    return SDL_CreateWindow(
-        titulo, 
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        WIDTH, HEIGHT, 
-        SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_OPENGL
-    );
+SDL_Window *criaTela(const char *titulo)
+{
+    return SDL_CreateWindow(titulo, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
 }
 
-//Desenha um segmento de reta na tela
-void desenhaArestaTela(SDL_Renderer *renderer, float *ponto1, float *ponto2){
-    int p1x, p1y, p2x, p2y;
+void desenhaArestaTela(SDL_Renderer *renderer, float *ponto1, float *ponto2)
+{
+    float escala = (float)fmin(WIDTH, HEIGHT) / 20;
 
-    p1x = ((ponto1[0])+1) * WIDTH/2;
-    p1y = (1-ponto1[1]) * HEIGHT/2;
-    p2x = ((ponto2[0])+1) * WIDTH/2;
-    p2y = (1-ponto2[1]) * HEIGHT/2;
+    int x1 = (int)(ponto1[0] * escala) + WIDTH / 2;
+    int y1 = (int)(ponto1[1] * escala) + HEIGHT / 2;
+    int x2 = (int)(ponto2[0] * escala) + WIDTH / 2;
+    int y2 = (int)(ponto2[1] * escala) + HEIGHT / 2;
 
-    SDL_RenderDrawLine(renderer, p1x, p1y, p2x, p2y);
-
-    return;
+    SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
 }
 
-//Desaloca a tela
-void desalocaTela(SDL_Window *window){
+void desenhaObjetoTela(SDL_Renderer *renderer, tObjeto3d *objeto, float **viewMatrix, float **projectionMatrix)
+{
+    // Precompute all transformed points (modelMatrix * viewMatrix * projectionMatrix * vertex)
+    float **pontosTransformados = (float **)malloc(objeto->nPontos * sizeof(float *));
+    for (int i = 0; i < objeto->nPontos; i++)
+    {
+        // Apply model matrix first
+        float *pontoModel = multMatriz4dPonto(objeto->modelMatrix, objeto->pontos[i]);
+        float *pontoView = multMatriz4dPonto(viewMatrix, pontoModel);
+        float *pontoProj = multMatriz4dPonto(projectionMatrix, pontoView);
+
+        pontosTransformados[i] = pontoProj;
+        
+        free(pontoModel);
+        free(pontoView);
+    }
+
+    // Draw edges using precomputed points
+    for (int i = 0; i < objeto->nArestas; i++)
+    {
+        float *ponto1 = pontosTransformados[objeto->arestas[i][0]];
+        float *ponto2 = pontosTransformados[objeto->arestas[i][1]];
+
+        desenhaArestaTela(renderer, ponto1, ponto2);
+    }
+
+    for (int i = 0; i < objeto->nPontos; i++)
+    {
+        free(pontosTransformados[i]);
+    }
+    free(pontosTransformados);
+}
+
+// Função para renderizar o objeto na tela
+void renderiza(SDL_Renderer *renderer, tObjeto3d **objetos, float **viewMatrix, float **projectionMatrix)
+{
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    // Desenha o objeto em branco
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    desenhaObjetoTela(renderer, objetos[0], viewMatrix, projectionMatrix);
+
+    SDL_Delay(16);
+    SDL_RenderPresent(renderer);
+}
+
+// Desaloca a tela
+void desalocaTela(SDL_Window *window)
+{
     SDL_DestroyWindow(window);
 }
